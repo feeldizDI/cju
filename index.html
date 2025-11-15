@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>예약 시스템 (로컬스토리지 + 관리자 로그) — 수정완료</title>
+    <title>예약 시스템 (Firebase 동기화 지원)</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg,#2d3748 0%,#1a202c 100%); min-height:100vh; padding:20px; }
@@ -150,7 +150,7 @@
                         <button id="exportBookingsBtn" class="btn-primary">예약 내역 JSON으로 내보내기</button>
                         <button id="exportLogsBtn" class="btn-primary">로그 내보내기</button>
                     </div>
-                    <div style="font-size:13px;color:#9ca3af;">관리자 비밀번호: <strong>admin2025</strong></div>
+                    <div style="font-size:13px;color:#9ca3af;">관리자 비밀번호: <strong>feel1380</strong></div>
                 </div>
                 <div id="adminBookingsList"></div>
             </div>
@@ -170,44 +170,100 @@
         <div id="confirmModal" class="modal"><div class="modal-content"><div style="margin-bottom:12px;">✅</div><h3 class="modal-title">예약이 완료되었습니다!</h3><p id="confirmText" class="modal-text" style="color:#9ca3af;margin-top:8px;"></p></div></div>
     </div>
 
+    <!-- Firebase SDK (필요 시) -->
+    <!--
+       // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCkWvUtC0jx_PVcQxca5mJH1z1WMOiTq_4",
+  authDomain: "cju-res.firebaseapp.com",
+  projectId: "cju-res",
+  storageBucket: "cju-res.firebasestorage.app",
+  messagingSenderId: "701907522266",
+  appId: "1:701907522266:web:075bab09134a7bf5a3cbe3",
+  measurementId: "G-4Z5JS4PBW2"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+    -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
     <script>
         // --- 상태 ---
         let bookings = {}; // key: "date-time" -> { userName, password, notes, date, time, id }
-        let logs = []; // { ts, action, key, detail }
+        let logs = []; // { ts, action, key }
         let selectedDate = null;
         let selectedTime = null;
         let viewMode = 'booking';
         let isAdminLoggedIn = false;
-        const ADMIN_PASSWORD = 'admin2025';
+        const ADMIN_PASSWORD = 'feel1380';
         const timeSlots = ['10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
 
         const STORAGE_KEY_BOOKINGS = 'bf_bookings_v1';
         const STORAGE_KEY_LOGS = 'bf_logs_v1';
 
-        // --- 저장/불러오기 (localStorage) ---
-        function saveBookingsToStorage(){
+        // Firebase 관련 (설정이 없으면 로컬 전용)
+        let firebaseEnabled = false;
+        let firebaseDB = null;
+
+        // 유저가 자신의 firebase 설정을 붙여넣을 수 있게 전역 변수로 둠
+        // 예시: 위 주석의 firebaseConfig 객체를 붙여넣고 initFirebase(firebaseConfig) 호출
+        function initFirebase(firebaseConfig){
             try{
-                localStorage.setItem(STORAGE_KEY_BOOKINGS, JSON.stringify(bookings));
-            }catch(e){ console.error('저장 실패', e); }
-        }
-        function loadBookingsFromStorage(){
-            try{
-                const raw = localStorage.getItem(STORAGE_KEY_BOOKINGS);
-                bookings = raw ? JSON.parse(raw) : {};
-            }catch(e){ console.error('로딩 실패', e); bookings = {}; }
-        }
-        function saveLogsToStorage(){
-            try{ localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs)); }catch(e){ console.error(e); }
-        }
-        function loadLogsFromStorage(){
-            try{ const raw = localStorage.getItem(STORAGE_KEY_LOGS); logs = raw ? JSON.parse(raw) : []; }catch(e){ logs = []; }
+                const app = firebase.initializeApp(firebaseConfig);
+                firebaseDB = firebase.database();
+                firebaseEnabled = true;
+                console.info('Firebase 초기화 완료 — 실시간 동기화 활성화');
+                // realtime로 bookings와 logs를 감시
+                firebaseDB.ref('/bookings').on('value', snapshot=>{
+                    const data = snapshot.val() || {};
+                    // 변환: firebase에선 키 그대로 저장
+                    bookings = {};
+                    Object.entries(data).forEach(([k,v])=>{ bookings[k]=v; });
+                    saveBookingsToStorage();
+                    renderAllViews();
+                });
+                firebaseDB.ref('/logs').limitToLast(200).on('value', snapshot=>{
+                    const data = snapshot.val() || {};
+                    logs = Object.entries(data).sort((a,b)=>b[0].localeCompare(a[0])).map(([k,v])=>v);
+                    saveLogsToStorage();
+                    renderLogs();
+                });
+            }catch(e){ console.error('firebase init error', e); }
         }
 
-        function appendLog(action, key, detail){
-            const entry = { ts: new Date().toISOString(), action, key, detail };
+        function pushBookingToFirebase(key, booking){ if(!firebaseEnabled) return; try{ firebaseDB.ref('/bookings/' + key).set(booking); }catch(e){ console.error(e); } }
+        function removeBookingFromFirebase(key){ if(!firebaseEnabled) return; try{ firebaseDB.ref('/bookings/' + key).remove(); }catch(e){ console.error(e); } }
+        function pushLogToFirebase(entry){ if(!firebaseEnabled) return; try{ const id = Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6); firebaseDB.ref('/logs/' + id).set(entry); }catch(e){ console.error(e); } }
+
+        // --- 저장/불러오기 (localStorage) ---
+        function saveBookingsToStorage(){
+            try{ localStorage.setItem(STORAGE_KEY_BOOKINGS, JSON.stringify(bookings)); }catch(e){ console.error('저장 실패', e); }
+            // firebase에도 반영
+            if(firebaseEnabled){ Object.entries(bookings).forEach(([k,v])=> pushBookingToFirebase(k,v)); }
+        }
+        function loadBookingsFromStorage(){
+            try{ const raw = localStorage.getItem(STORAGE_KEY_BOOKINGS); bookings = raw ? JSON.parse(raw) : {}; }catch(e){ console.error('로딩 실패', e); bookings = {}; }
+        }
+        function saveLogsToStorage(){ try{ localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs)); }catch(e){ console.error(e); } }
+        function loadLogsFromStorage(){ try{ const raw = localStorage.getItem(STORAGE_KEY_LOGS); logs = raw ? JSON.parse(raw) : []; }catch(e){ logs = []; } }
+
+        function appendLog(action, key){
+            const entry = { ts: new Date().toISOString(), action, key };
             logs.unshift(entry); // 최신이 위
             saveLogsToStorage();
             renderLogs();
+            // firebase에도 push
+            pushLogToFirebase(entry);
         }
 
         // --- 유틸 ---
@@ -289,17 +345,18 @@
             // 고유 ID 생성 (서버 없는 환경에서 충돌 최소화)
             const id = 'bk_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6);
             bookings[key] = { userName, password: userPassword, notes: userNotes, date: selectedDate, time: selectedTime, id };
-            saveBookingsToStorage(); appendLog('CREATE', key, { userName, date:selectedDate, time:selectedTime, id });
+            saveBookingsToStorage(); appendLog('CREATE', key);
+            // firebase에도 반영 (saveBookingsToStorage에서 push됨)
             // 확인 모달
             const modal = document.getElementById('confirmModal'); const confirmText = document.getElementById('confirmText'); confirmText.textContent = `${userName} - 12월 ${selectedDate}일 ${selectedTime}`; modal.classList.add('show');
             setTimeout(()=>{ modal.classList.remove('show'); selectedDate=null; selectedTime=null; document.getElementById('userName').value=''; document.getElementById('userPassword').value=''; document.getElementById('userNotes').value=''; updateUI(); generateTimeSlots(); renderAllViews(); }, 1500);
         }
 
         // --- 취소 (사용자) ---
-        function cancelBooking(key){ const booking = bookings[key]; if(!booking) return; const inputPassword = prompt('예약 시 입력한 비밀번호 4자리를 입력하세요:'); if(!inputPassword) return; if(inputPassword !== booking.password){ alert('비밀번호가 일치하지 않습니다.'); return; } if(confirm('이 예약을 취소하시겠습니까?')){ delete bookings[key]; saveBookingsToStorage(); appendLog('DELETE_USER', key, { by: 'user', id: booking.id, userName: booking.userName }); renderAllViews(); } }
+        function cancelBooking(key){ const booking = bookings[key]; if(!booking) return; const inputPassword = prompt('예약 시 입력한 비밀번호 4자리를 입력하세요:'); if(!inputPassword) return; if(inputPassword !== booking.password){ alert('비밀번호가 일치하지 않습니다.'); return; } if(confirm('이 예약을 취소하시겠습니까?')){ delete bookings[key]; saveBookingsToStorage(); appendLog('DELETE_USER', key); if(firebaseEnabled) removeBookingFromFirebase(key); renderAllViews(); } }
 
         // --- 관리자 삭제 ---
-        function adminCancelBooking(key){ const booking = bookings[key]; if(!booking) return; if(confirm('관리자 권한으로 이 예약을 삭제하시겠습니까?')){ delete bookings[key]; saveBookingsToStorage(); appendLog('DELETE_ADMIN', key, { by: 'admin', id: booking.id, userName: booking.userName }); renderAllViews(); } }
+        function adminCancelBooking(key){ const booking = bookings[key]; if(!booking) return; if(confirm('관리자 권한으로 이 예약을 삭제하시겠습니까?')){ delete bookings[key]; saveBookingsToStorage(); appendLog('DELETE_ADMIN', key); if(firebaseEnabled) removeBookingFromFirebase(key); renderAllViews(); } }
 
         // --- 뷰 렌더링 ---
         function updateUserView(){ const container = document.getElementById('userBookingsList'); container.innerHTML=''; const bookingsByDate={}; for(const [key, booking] of Object.entries(bookings)){ const date = booking.date; if(!bookingsByDate[date]) bookingsByDate[date]=[]; bookingsByDate[date].push({ key, ...booking }); }
@@ -357,8 +414,19 @@
             document.getElementById('statTotal').textContent = totalBookings; document.getElementById('statDates').textContent = uniqueDates; document.getElementById('statRate').textContent = rate + '%';
         }
 
-        function renderLogs(){ const container = document.getElementById('logContainer'); if(!container) return; container.innerHTML=''; if(logs.length===0){ container.innerHTML = '<div style="padding:12px;color:#6b7280;">로그가 없습니다.</div>'; return; }
-            logs.forEach(entry=>{ const div = document.createElement('div'); div.className='log-item'; div.textContent = `${entry.ts} | ${entry.action} | ${entry.key} | ${JSON.stringify(entry.detail)}`; container.appendChild(div); }); }
+        function renderLogs(){
+            const container = document.getElementById('logContainer');
+            if(!container) return;
+            container.innerHTML = '';
+            if(logs.length===0){ container.innerHTML = '<div style="padding:12px;color:#6b7280;">로그가 없습니다.</div>'; return; }
+            logs.forEach(entry=>{
+                const div = document.createElement('div');
+                div.className = 'log-item';
+                // 필요한 정보만 간단하게 노출 (ISO 시간 • ACTION • key)
+                div.textContent = `${entry.ts} • ${entry.action} • ${entry.key}`;
+                container.appendChild(div);
+            });
+        }
 
         function renderAllViews(){ generateCalendar(); generateTimeSlots(); updateUserView(); updateAdminView(); renderLogs(); document.getElementById('totalBookings').textContent = `총 ${Object.keys(bookings).length}개 예약`; }
 
