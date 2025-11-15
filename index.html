@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>예약 시스템</title>
+    <!-- 
+        [시스템 구조]
+        1. 예약하기: 사용자가 예약을 추가하는 탭
+        2. 예약현황: 모든 사용자가 예약을 조회하고, 본인 예약을 비밀번호로 취소할 수 있는 탭
+        3. 관리자: 관리자 비밀번호(admin2025)를 입력한 후 모든 예약을 관리할 수 있는 탭
+        
+        관리자 비밀번호: admin2025
+    -->
     <style>
         * {
             margin: 0;
@@ -235,6 +243,11 @@
             outline: none;
             border-color: #6b7280;
             ring: 2px solid rgba(107, 114, 128, 0.2);
+        }
+
+        textarea.form-input {
+            font-family: inherit;
+            min-height: 80px;
         }
 
         .form-display {
@@ -547,7 +560,8 @@
                 
                 <div class="mode-buttons">
                     <button class="mode-btn active" id="bookingModeBtn">예약하기</button>
-                    <button class="mode-btn" id="adminModeBtn">예약현황</button>
+                    <button class="mode-btn" id="userModeBtn">예약현황</button>
+                    <button class="mode-btn" id="adminModeBtn">관리자</button>
                 </div>
             </div>
         </div>
@@ -624,12 +638,115 @@
             </div>
         </div>
 
+        <!-- 예약현황 모드 (일반 사용자) -->
+        <div id="userMode" class="hidden">
+            <div class="card">
+                <h2 class="card-title">예약 현황 (조회만 가능)</h2>
+                <div id="userBookingsList"></div>
+            </div>
+
+            <!-- 통계 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div>
+                        <div class="stat-label">전체 예약</div>
+                        <div class="stat-value" id="userStatTotal" style="color: #9ca3af;">0</div>
+                    </div>
+                    <div class="stat-icon" style="background: #374151;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div>
+                        <div class="stat-label">예약된 날짜</div>
+                        <div class="stat-value" id="userStatDates" style="color: #9ca3af;">0</div>
+                    </div>
+                    <div class="stat-icon" style="background: #374151;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div>
+                        <div class="stat-label">예약률</div>
+                        <div class="stat-value" id="userStatRate" style="color: #9ca3af;">0%</div>
+                    </div>
+                    <div class="stat-icon" style="background: #374151;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 관리자 모드 -->
         <div id="adminMode" class="hidden">
             <div class="card">
-                <h2 class="card-title">날짜별 예약 현황</h2>
-                <div id="bookingsList"></div>
+                <div style="background: #065f46; color: #d1fae5; padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center; font-weight: bold;">
+                    🔒 관리자 모드 - 모든 예약을 관리할 수 있습니다
+                    <button onclick="logout()" style="margin-left: 16px; padding: 6px 12px; background: #7f1d1d; color: #fca5a5; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">로그아웃</button>
+                </div>
+                <h2 class="card-title">날짜별 예약 현황 (관리자)</h2>
+                <div id="adminBookingsList"></div>
             </div>
+
+            <!-- 통계 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div>
+                        <div class="stat-label">전체 예약</div>
+                        <div class="stat-value" id="statTotal" style="color: #9ca3af;">0</div>
+                    </div>
+                    <div class="stat-icon" style="background: #374151;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div>
+                        <div class="stat-label">예약된 날짜</div>
+                        <div class="stat-value" id="statDates" style="color: #9ca3af;">0</div>
+                    </div>
+                    <div class="stat-icon" style="background: #374151;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div>
+                        <div class="stat-label">예약률</div>
+                        <div class="stat-value" id="statRate" style="color: #9ca3af;">0%</div>
+                    </div>
+                    <div class="stat-icon" style="background: #374151;">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
 
             <!-- 통계 -->
             <div class="stats-grid">
@@ -697,8 +814,8 @@
         let selectedDate = null;
         let selectedTime = null;
         let viewMode = 'booking';
-        let isAdmin = false;
-        const ADMIN_PASSWORD = 'admin2025'; // 관리자 비밀번호
+        let isAdminLoggedIn = false;
+        const ADMIN_PASSWORD = 'feel1380'; // 관리자 비밀번호
 
         const timeSlots = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
 
@@ -929,7 +1046,7 @@
             }, 2000);
         }
 
-        // 예약 취소
+        // 예약 취소 (일반 사용자 - 비밀번호 필요)
         function cancelBooking(key) {
             const booking = bookings[key];
             if (!booking) return;
@@ -947,14 +1064,23 @@
             
             if (confirm('이 예약을 취소하시겠습니까?')) {
                 delete bookings[key];
+                updateUserView();
+                updateUI();
+            }
+        }
+
+        // 관리자 예약 삭제 (비밀번호 불필요)
+        function adminCancelBooking(key) {
+            if (confirm('이 예약을 삭제하시겠습니까?')) {
+                delete bookings[key];
                 updateAdminView();
                 updateUI();
             }
         }
 
-        // 관리자 뷰 업데이트
-        function updateAdminView() {
-            const container = document.getElementById('bookingsList');
+        // 일반 사용자 뷰 업데이트 (조회 + 본인 예약 취소)
+        function updateUserView() {
+            const container = document.getElementById('userBookingsList');
             container.innerHTML = '';
             
             // 날짜별로 그룹화
@@ -1007,18 +1133,124 @@
                     
                     const hour = booking.time.split(':')[0];
                     
+                    const notesHtml = booking.notes 
+                        ? `<div style="margin-top: 8px; padding: 8px; background: #111827; border-radius: 4px; border-left: 3px solid #4b5563;">
+                            <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">특이사항</div>
+                            <div style="font-size: 13px; color: #d1d5db;">${booking.notes}</div>
+                           </div>`
+                        : '';
+                    
                     item.innerHTML = `
-                        <div class="booking-info">
-                            <div class="booking-time-badge">
-                                <div class="booking-time-hour">${hour}</div>
-                                <div class="booking-time-label">시</div>
+                        <div class="booking-info" style="flex-direction: column; align-items: flex-start; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 16px; width: 100%;">
+                                <div class="booking-time-badge">
+                                    <div class="booking-time-hour">${hour}</div>
+                                    <div class="booking-time-label">시</div>
+                                </div>
+                                <div class="booking-details" style="flex: 1;">
+                                    <div class="booking-name">${booking.userName}</div>
+                                    <div class="booking-time-text">${booking.time}</div>
+                                </div>
+                                <button class="btn-cancel" onclick="cancelBooking('${booking.key}')">취소</button>
                             </div>
-                            <div class="booking-details">
-                                <div class="booking-name">${booking.userName}</div>
-                                <div class="booking-time-text">${booking.time}</div>
-                            </div>
+                            ${notesHtml}
                         </div>
-                        <button class="btn-cancel" onclick="cancelBooking('${booking.key}')">취소</button>
+                    `;
+                    
+                    body.appendChild(item);
+                });
+                
+                section.appendChild(body);
+                container.appendChild(section);
+            });
+            
+            // 통계 업데이트
+            const totalBookings = Object.keys(bookings).length;
+            const uniqueDates = new Set(Object.values(bookings).map(b => b.date)).size;
+            const rate = Math.round((totalBookings / (20 * timeSlots.length)) * 100);
+            
+            document.getElementById('userStatTotal').textContent = totalBookings;
+            document.getElementById('userStatDates').textContent = uniqueDates;
+            document.getElementById('userStatRate').textContent = rate + '%';
+        }
+
+        // 관리자 뷰 업데이트
+        function updateAdminView() {
+            const container = document.getElementById('adminBookingsList');
+            container.innerHTML = '';
+            
+            // 날짜별로 그룹화
+            const bookingsByDate = {};
+            for (const [key, booking] of Object.entries(bookings)) {
+                const date = booking.date;
+                if (!bookingsByDate[date]) {
+                    bookingsByDate[date] = [];
+                }
+                bookingsByDate[date].push({ key, ...booking });
+            }
+            
+            if (Object.keys(bookingsByDate).length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <p class="empty-state-text">아직 예약이 없습니다.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 날짜별로 정렬하여 표시
+            const sortedDates = Object.keys(bookingsByDate).sort((a, b) => a - b);
+            
+            sortedDates.forEach(date => {
+                const section = document.createElement('div');
+                section.className = 'date-section';
+                
+                const header = document.createElement('div');
+                header.className = 'date-section-header';
+                header.innerHTML = `
+                    <div class="date-section-title">
+                        12월 ${date}일 (${getDayOfWeek(date)}) - ${bookingsByDate[date].length}건
+                    </div>
+                `;
+                section.appendChild(header);
+                
+                const body = document.createElement('div');
+                body.className = 'date-section-body';
+                
+                bookingsByDate[date].forEach(booking => {
+                    const item = document.createElement('div');
+                    item.className = 'booking-item';
+                    
+                    const hour = booking.time.split(':')[0];
+                    
+                    const notesHtml = booking.notes 
+                        ? `<div style="margin-top: 8px; padding: 8px; background: #111827; border-radius: 4px; border-left: 3px solid #4b5563;">
+                            <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">특이사항</div>
+                            <div style="font-size: 13px; color: #d1d5db;">${booking.notes}</div>
+                           </div>`
+                        : '';
+                    
+                    item.innerHTML = `
+                        <div class="booking-info" style="flex-direction: column; align-items: flex-start; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 16px; width: 100%;">
+                                <div class="booking-time-badge">
+                                    <div class="booking-time-hour">${hour}</div>
+                                    <div class="booking-time-label">시</div>
+                                </div>
+                                <div class="booking-details" style="flex: 1;">
+                                    <div class="booking-name">${booking.userName}</div>
+                                    <div class="booking-time-text">${booking.time}</div>
+                                </div>
+                                <button class="btn-cancel" onclick="adminCancelBooking('${booking.key}')">삭제</button>
+                            </div>
+                            ${notesHtml}
+                        </div>
                     `;
                     
                     body.appendChild(item);
@@ -1040,29 +1272,67 @@
 
         // 모드 전환
         function switchMode(mode) {
+            // 관리자 탭 접근 시 비밀번호 확인
+            if (mode === 'admin') {
+                if (!isAdminLoggedIn) {
+                    const password = prompt('관리자 비밀번호를 입력하세요:');
+                    
+                    if (password !== ADMIN_PASSWORD) {
+                        alert('비밀번호가 일치하지 않습니다.');
+                        return; // 모드 전환 취소
+                    }
+                    
+                    isAdminLoggedIn = true;
+                    alert('관리자로 로그인되었습니다.');
+                }
+            }
+            
             viewMode = mode;
             
             const bookingModeBtn = document.getElementById('bookingModeBtn');
+            const userModeBtn = document.getElementById('userModeBtn');
             const adminModeBtn = document.getElementById('adminModeBtn');
             const bookingMode = document.getElementById('bookingMode');
+            const userMode = document.getElementById('userMode');
             const adminMode = document.getElementById('adminMode');
             
+            // 모든 버튼 비활성화
+            bookingModeBtn.classList.remove('active');
+            userModeBtn.classList.remove('active');
+            adminModeBtn.classList.remove('active');
+            
+            // 모든 뷰 숨기기
+            bookingMode.classList.add('hidden');
+            userMode.classList.add('hidden');
+            adminMode.classList.add('hidden');
+            
+            // 선택된 모드만 활성화
             if (mode === 'booking') {
                 bookingModeBtn.classList.add('active');
-                adminModeBtn.classList.remove('active');
                 bookingMode.classList.remove('hidden');
-                adminMode.classList.add('hidden');
-            } else {
-                bookingModeBtn.classList.remove('active');
+            } else if (mode === 'user') {
+                userModeBtn.classList.add('active');
+                userMode.classList.remove('hidden');
+                updateUserView();
+            } else if (mode === 'admin') {
                 adminModeBtn.classList.add('active');
-                bookingMode.classList.add('hidden');
                 adminMode.classList.remove('hidden');
                 updateAdminView();
             }
         }
 
+        // 로그아웃
+        function logout() {
+            if (confirm('관리자 모드에서 로그아웃하시겠습니까?')) {
+                isAdminLoggedIn = false;
+                switchMode('booking');
+                alert('로그아웃되었습니다.');
+            }
+        }
+
         // 이벤트 리스너
         document.getElementById('bookingModeBtn').onclick = () => switchMode('booking');
+        document.getElementById('userModeBtn').onclick = () => switchMode('user');
         document.getElementById('adminModeBtn').onclick = () => switchMode('admin');
         document.getElementById('bookingBtn').onclick = handleBooking;
         document.getElementById('userName').oninput = updateUI;
