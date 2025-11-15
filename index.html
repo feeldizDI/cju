@@ -3,561 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>예약 시스템</title>
-    <!-- 
-        [시스템 구조]
-        1. 예약하기: 사용자가 예약을 추가하는 탭
-        2. 예약현황: 모든 사용자가 예약을 조회하고, 본인 예약을 비밀번호로 취소할 수 있는 탭
-        3. 관리자: 관리자 비밀번호(admin2025)를 입력한 후 모든 예약을 관리할 수 있는 탭
-        
-        관리자 비밀번호: admin2025
-    -->
+    <title>예약 시스템 (로컬스토리지 + 관리자 로그) — 수정완료</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .header {
-            background: #1f2937;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .header-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .header-title h1 {
-            font-size: 28px;
-            font-weight: bold;
-            color: #f3f4f6;
-        }
-
-        .header-subtitle {
-            color: #9ca3af;
-            margin-top: 8px;
-        }
-
-        .mode-buttons {
-            display: flex;
-            gap: 8px;
-        }
-
-        .mode-btn {
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-        }
-
-        .mode-btn.active {
-            background: #374151;
-            color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .mode-btn:not(.active) {
-            background: #4b5563;
-            color: #d1d5db;
-        }
-
-        .mode-btn:not(.active):hover {
-            background: #6b7280;
-        }
-
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-        }
-
-        @media (min-width: 1024px) {
-            .main-grid {
-                grid-template-columns: 2fr 1fr;
-            }
-        }
-
-        .card {
-            background: #1f2937;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            padding: 24px;
-        }
-
-        .card-title {
-            font-size: 24px;
-            font-weight: bold;
-            color: #f3f4f6;
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .calendar-header {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        .calendar-day-header {
-            text-align: center;
-            font-weight: bold;
-            padding: 8px;
-            color: #9ca3af;
-        }
-
-        .calendar-day-header.sunday {
-            color: #ef4444;
-        }
-
-        .calendar-day-header.saturday {
-            color: #3b82f6;
-        }
-
-        .calendar-week {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        .calendar-day {
-            aspect-ratio: 1;
-            padding: 8px;
-            border-radius: 8px;
-            border: 2px solid #374151;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #111827;
-        }
-
-        .calendar-day:not(.empty):hover {
-            border-color: #6b7280;
-            background: #1f2937;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .calendar-day.selected {
-            border-color: #4b5563;
-            background: #374151;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-            transform: scale(1.05);
-        }
-
-        .calendar-day.empty {
-            border: none;
-            cursor: default;
-            background: transparent;
-        }
-
-        .calendar-day-number {
-            font-size: 20px;
-            font-weight: bold;
-            color: #f3f4f6;
-        }
-
-        .calendar-day-number.sunday {
-            color: #dc2626;
-        }
-
-        .calendar-day-number.saturday {
-            color: #2563eb;
-        }
-
-        .booking-dots {
-            position: absolute;
-            bottom: 4px;
-            display: flex;
-            gap: 2px;
-        }
-
-        .booking-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #9ca3af;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            color: #d1d5db;
-            margin-bottom: 8px;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 10px 16px;
-            border: 1px solid #4b5563;
-            background: #111827;
-            color: #f3f4f6;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .form-input::placeholder {
-            color: #6b7280;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #6b7280;
-            ring: 2px solid rgba(107, 114, 128, 0.2);
-        }
-
-        textarea.form-input {
-            font-family: inherit;
-            min-height: 80px;
-        }
-
-        .form-display {
-            width: 100%;
-            padding: 10px 16px;
-            background: #111827;
-            border-radius: 8px;
-            color: #9ca3af;
-        }
-
-        .btn-primary {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-primary:not(:disabled) {
-            background: #374151;
-            color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn-primary:not(:disabled):hover {
-            background: #4b5563;
-        }
-
-        .btn-primary:disabled {
-            background: #1f2937;
-            color: #6b7280;
-            cursor: not-allowed;
-        }
-
-        .time-slots {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 12px;
-            margin-top: 16px;
-        }
-
-        .time-slot {
-            padding: 16px;
-            border-radius: 8px;
-            border: 2px solid #374151;
-            background: #111827;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-        }
-
-        .time-slot:not(.booked):hover {
-            border-color: #6b7280;
-            background: #1f2937;
-        }
-
-        .time-slot.selected {
-            border-color: #4b5563;
-            background: #374151;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-        }
-
-        .time-slot.booked {
-            border-color: #991b1b;
-            background: #7f1d1d;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .time-slot-time {
-            font-size: 18px;
-            font-weight: bold;
-            color: #f3f4f6;
-        }
-
-        .time-slot-status {
-            font-size: 12px;
-            color: #fca5a5;
-            margin-top: 4px;
-        }
-
-        .booking-item {
-            padding: 16px;
-            border-bottom: 1px solid #374151;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: background 0.2s;
-        }
-
-        .booking-item:hover {
-            background: #111827;
-        }
-
-        .booking-item:last-child {
-            border-bottom: none;
-        }
-
-        .booking-info {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .booking-time-badge {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .booking-time-hour {
-            font-size: 24px;
-            font-weight: bold;
-        }
-
-        .booking-time-label {
-            font-size: 10px;
-        }
-
-        .booking-details {
-            flex: 1;
-        }
-
-        .booking-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #f3f4f6;
-            margin-bottom: 4px;
-        }
-
-        .booking-time-text {
-            font-size: 14px;
-            color: #9ca3af;
-        }
-
-        .btn-cancel {
-            padding: 8px 16px;
-            background: #7f1d1d;
-            color: #fca5a5;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn-cancel:hover {
-            background: #991b1b;
-        }
-
-        .date-section {
-            margin-bottom: 24px;
-        }
-
-        .date-section-header {
-            background: #374151;
-            padding: 12px 16px;
-            border-radius: 8px 8px 0 0;
-            border-bottom: 2px solid #4b5563;
-        }
-
-        .date-section-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #f3f4f6;
-        }
-
-        .date-section-body {
-            border: 2px solid #4b5563;
-            border-top: none;
-            border-radius: 0 0 8px 8px;
-            overflow: hidden;
-            background: #1f2937;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 24px;
-            margin-top: 24px;
-        }
-
-        .stat-card {
-            background: #1f2937;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            padding: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .stat-value {
-            font-size: 36px;
-            font-weight: bold;
-        }
-
-        .stat-label {
-            font-size: 14px;
-            color: #9ca3af;
-            margin-bottom: 8px;
-        }
-
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #1f2937;
-            border-radius: 12px;
-            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.5);
-            padding: 32px;
-            max-width: 400px;
-            margin: 16px;
-            text-align: center;
-        }
-
-        .modal-icon {
-            width: 64px;
-            height: 64px;
-            background: #065f46;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px;
-        }
-
-        .modal-title {
-            font-size: 24px;
-            font-weight: bold;
-            color: #f3f4f6;
-            margin-bottom: 8px;
-        }
-
-        .modal-text {
-            color: #9ca3af;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 48px 24px;
-            color: #6b7280;
-        }
-
-        .empty-state-icon {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 16px;
-            opacity: 0.3;
-        }
-
-        .empty-state-text {
-            font-size: 18px;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg,#2d3748 0%,#1a202c 100%); min-height:100vh; padding:20px; }
+        .container { max-width:1400px; margin:0 auto; }
+        .header { background:#1f2937; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.3); padding:24px; margin-bottom:24px; }
+        .header-content { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+        .header-title { display:flex; align-items:center; gap:12px; }
+        .header-title h1 { font-size:28px; font-weight:bold; color:#f3f4f6; }
+        .header-subtitle { color:#9ca3af; margin-top:8px; }
+        .mode-buttons { display:flex; gap:8px; }
+        .mode-btn { padding:10px 16px; border-radius:8px; font-weight:600; cursor:pointer; border:none; transition:all .2s; }
+        .mode-btn.active { background:#374151; color:white; box-shadow:0 4px 6px rgba(0,0,0,.3); }
+        .mode-btn:not(.active) { background:#4b5563; color:#d1d5db; }
+        .main-grid { display:grid; grid-template-columns:1fr; gap:24px; }
+        @media(min-width:1024px){ .main-grid{ grid-template-columns:2fr 1fr; } }
+        .card { background:#1f2937; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.3); padding:24px; }
+        .card-title{ font-size:24px; font-weight:bold; color:#f3f4f6; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; }
+        .calendar-header{ display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-bottom:8px; }
+        .calendar-day-header{ text-align:center; font-weight:bold; padding:8px; color:#9ca3af; }
+        .calendar-day-header.sunday{ color:#ef4444; }
+        .calendar-day-header.saturday{ color:#3b82f6; }
+        .calendar-week{ display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-bottom:8px; }
+        .calendar-day{ aspect-ratio:1; padding:8px; border-radius:8px; border:2px solid #374151; cursor:pointer; transition:all .2s; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#111827; }
+        .calendar-day.empty{ border:none; cursor:default; background:transparent; }
+        .calendar-day.selected{ border-color:#4b5563; background:#374151; box-shadow:0 4px 6px rgba(0,0,0,.4); transform:scale(1.05); }
+        .calendar-day-number{ font-size:20px; font-weight:bold; color:#f3f4f6; }
+        .calendar-day-number.sunday{ color:#dc2626; }
+        .calendar-day-number.saturday{ color:#2563eb; }
+        .booking-dots{ position:absolute; bottom:4px; display:flex; gap:2px; }
+        .booking-dot{ width:6px; height:6px; border-radius:50%; background:#9ca3af; }
+        .form-group{ margin-bottom:16px; }
+        .form-label{ display:block; font-size:14px; font-weight:500; color:#d1d5db; margin-bottom:8px; }
+        .form-input{ width:100%; padding:10px 16px; border:1px solid #4b5563; background:#111827; color:#f3f4f6; border-radius:8px; font-size:14px; }
+        textarea.form-input{ min-height:80px; }
+        .form-display{ width:100%; padding:10px 16px; background:#111827; border-radius:8px; color:#9ca3af; }
+        .btn-primary{ width:100%; padding:12px; border-radius:8px; font-weight:600; border:none; cursor:pointer; transition:all .2s; }
+        .btn-primary:not(:disabled){ background:#374151; color:white; box-shadow:0 4px 6px rgba(0,0,0,.3); }
+        .time-slots{ display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:12px; margin-top:16px; }
+        .time-slot{ padding:16px; border-radius:8px; border:2px solid #374151; background:#111827; cursor:pointer; transition:all .2s; text-align:center; }
+        .time-slot.booked{ border-color:#991b1b; background:#7f1d1d; cursor:not-allowed; opacity:0.6; }
+        .time-slot.selected{ border-color:#4b5563; background:#374151; box-shadow:0 4px 6px rgba(0,0,0,.4); }
+        .time-slot-time{ font-size:18px; font-weight:bold; color:#f3f4f6; }
+        .time-slot-status{ font-size:12px; color:#fca5a5; margin-top:4px; }
+        .booking-item{ padding:16px; border-bottom:1px solid #374151; display:flex; justify-content:space-between; align-items:center; transition:background .2s; }
+        .booking-info{ display:flex; align-items:center; gap:16px; }
+        .booking-time-badge{ width:80px; height:80px; background:linear-gradient(135deg,#374151 0%,#4b5563 100%); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; box-shadow:0 4px 6px rgba(0,0,0,.3); }
+        .booking-time-hour{ font-size:24px; font-weight:bold; }
+        .booking-details{ flex:1; }
+        .booking-name{ font-size:18px; font-weight:bold; color:#f3f4f6; margin-bottom:4px; }
+        .booking-time-text{ font-size:14px; color:#9ca3af; }
+        .btn-cancel{ padding:8px 16px; background:#7f1d1d; color:#fca5a5; border:none; border-radius:8px; font-weight:600; cursor:pointer; transition:background .2s; }
+        .date-section{ margin-bottom:24px; }
+        .date-section-header{ background:#374151; padding:12px 16px; border-radius:8px 8px 0 0; border-bottom:2px solid #4b5563; }
+        .date-section-title{ font-size:18px; font-weight:bold; color:#f3f4f6; }
+        .date-section-body{ border:2px solid #4b5563; border-top:none; border-radius:0 0 8px 8px; overflow:hidden; background:#1f2937; }
+        .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:24px; margin-top:24px; }
+        .stat-card{ background:#1f2937; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,.3); padding:24px; display:flex; justify-content:space-between; align-items:center; }
+        .modal{ display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; }
+        .modal.show{ display:flex; }
+        .modal-content{ background:#1f2937; border-radius:12px; box-shadow:0 20px 25px rgba(0,0,0,.5); padding:32px; max-width:600px; margin:16px; text-align:center; }
+        .log-list{ max-height:260px; overflow:auto; border:1px solid #374151; border-radius:8px; padding:12px; background:#0f1721; }
+        .log-item{ padding:8px; border-bottom:1px solid #374151; font-size:13px; color:#cbd5e1; }
+        .control-row{ display:flex; gap:8px; align-items:center; }
+        .hidden{ display:none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 헤더 -->
         <div class="header">
             <div class="header-content">
                 <div>
                     <div class="header-title">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                         <h1>예약 시스템</h1>
                     </div>
                     <p class="header-subtitle">2025년 12월 1일 ~ 20일 | 오전 10시 ~ 오후 6시</p>
                 </div>
-                
                 <div class="mode-buttons">
                     <button class="mode-btn active" id="bookingModeBtn">예약하기</button>
                     <button class="mode-btn" id="userModeBtn">예약현황</button>
@@ -566,17 +89,13 @@
             </div>
         </div>
 
-        <!-- 예약하기 모드 -->
         <div id="bookingMode">
             <div class="main-grid">
-                <!-- 달력 -->
                 <div class="card">
                     <div class="card-title">
                         <span>2025년 12월</span>
-                        <span id="totalBookings" style="font-size: 14px; color: #6b7280; font-weight: normal;">총 0개 예약</span>
+                        <span id="totalBookings" style="font-size:14px;color:#6b7280;font-weight:normal;">총 0개 예약</span>
                     </div>
-
-                    <!-- 요일 헤더 -->
                     <div class="calendar-header">
                         <div class="calendar-day-header sunday">일</div>
                         <div class="calendar-day-header">월</div>
@@ -586,761 +105,315 @@
                         <div class="calendar-day-header">금</div>
                         <div class="calendar-day-header saturday">토</div>
                     </div>
-
-                    <!-- 달력 그리드 -->
                     <div id="calendarGrid"></div>
-
-                    <div style="margin-top: 16px; font-size: 14px; color: #9ca3af;">
-                        <span style="display: inline-flex; align-items: center; gap: 4px;">
-                            <span class="booking-dot"></span>
-                            예약 있음
-                        </span>
-                    </div>
+                    <div style="margin-top:16px;font-size:14px;color:#9ca3af;"><span style="display:inline-flex;align-items:center;gap:4px;"><span class="booking-dot"></span>예약 있음</span></div>
                 </div>
 
-                <!-- 예약 정보 입력 -->
                 <div class="card">
-                    <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 16px; color: #f3f4f6;">예약 정보</h2>
-                    
-                    <div class="form-group">
-                        <label class="form-label">영화제목 | 연출자</label>
-                        <input type="text" id="userName" class="form-input" placeholder="예: 기생충 | 봉준호">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">비밀번호 (4자리)</label>
-                        <input type="password" id="userPassword" class="form-input" placeholder="4자리 숫자" maxlength="4" pattern="[0-9]{4}">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">특이사항 (선택)</label>
-                        <textarea id="userNotes" class="form-input" placeholder="특이사항을 입력하세요" rows="3" style="resize: vertical;"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">선택된 날짜</label>
-                        <div id="selectedDateDisplay" class="form-display">날짜를 선택하세요</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">선택된 시간</label>
-                        <div id="selectedTimeDisplay" class="form-display">시간을 선택하세요</div>
-                    </div>
-
+                    <h2 style="font-size:20px;font-weight:bold;margin-bottom:16px;color:#f3f4f6;">예약 정보</h2>
+                    <div class="form-group"><label class="form-label">영화제목 | 연출자</label><input type="text" id="userName" class="form-input" placeholder="예: 기생충 | 봉준호"></div>
+                    <div class="form-group"><label class="form-label">비밀번호 (4자리)</label><input type="password" id="userPassword" class="form-input" placeholder="4자리 숫자" maxlength="4" pattern="[0-9]{4}"></div>
+                    <div class="form-group"><label class="form-label">특이사항 (선택)</label><textarea id="userNotes" class="form-input" placeholder="특이사항을 입력하세요" rows="3" style="resize:vertical;"></textarea></div>
+                    <div class="form-group"><label class="form-label">선택된 날짜</label><div id="selectedDateDisplay" class="form-display">날짜를 선택하세요</div></div>
+                    <div class="form-group"><label class="form-label">선택된 시간</label><div id="selectedTimeDisplay" class="form-display">시간을 선택하세요</div></div>
                     <button id="bookingBtn" class="btn-primary" disabled>예약하기</button>
                 </div>
             </div>
 
-            <!-- 시간 선택 -->
-            <div id="timeSelection" class="card hidden" style="margin-top: 24px;">
-                <h2 id="timeSelectionTitle" style="font-size: 20px; font-weight: bold; margin-bottom: 16px; color: #f3f4f6;">시간 선택</h2>
+            <div id="timeSelection" class="card hidden" style="margin-top:24px;">
+                <h2 id="timeSelectionTitle" style="font-size:20px;font-weight:bold;margin-bottom:16px;color:#f3f4f6;">시간 선택</h2>
                 <div id="timeSlots" class="time-slots"></div>
             </div>
         </div>
 
-        <!-- 예약현황 모드 (일반 사용자) -->
         <div id="userMode" class="hidden">
             <div class="card">
                 <h2 class="card-title">예약 현황 (조회만 가능)</h2>
                 <div id="userBookingsList"></div>
             </div>
-
-            <!-- 통계 -->
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div>
-                        <div class="stat-label">전체 예약</div>
-                        <div class="stat-value" id="userStatTotal" style="color: #9ca3af;">0</div>
-                    </div>
-                    <div class="stat-icon" style="background: #374151;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div>
-                        <div class="stat-label">예약된 날짜</div>
-                        <div class="stat-value" id="userStatDates" style="color: #9ca3af;">0</div>
-                    </div>
-                    <div class="stat-icon" style="background: #374151;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div>
-                        <div class="stat-label">예약률</div>
-                        <div class="stat-value" id="userStatRate" style="color: #9ca3af;">0%</div>
-                    </div>
-                    <div class="stat-icon" style="background: #374151;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </div>
-                </div>
+                <div class="stat-card"><div><div class="stat-label">전체 예약</div><div class="stat-value" id="userStatTotal" style="color:#9ca3af;">0</div></div><div class="stat-icon" style="background:#374151;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div></div>
+                <div class="stat-card"><div><div class="stat-label">예약된 날짜</div><div class="stat-value" id="userStatDates" style="color:#9ca3af;">0</div></div><div class="stat-icon" style="background:#374151;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div></div>
+                <div class="stat-card"><div><div class="stat-label">예약률</div><div class="stat-value" id="userStatRate" style="color:#9ca3af;">0%</div></div><div class="stat-icon" style="background:#374151;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg></div></div>
             </div>
         </div>
 
-        <!-- 관리자 모드 -->
         <div id="adminMode" class="hidden">
             <div class="card">
-                <div style="background: #065f46; color: #d1fae5; padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center; font-weight: bold;">
+                <div style="background:#065f46;color:#d1fae5;padding:12px;border-radius:8px;margin-bottom:16px;text-align:center;font-weight:bold;">
                     🔒 관리자 모드 - 모든 예약을 관리할 수 있습니다
-                    <button onclick="logout()" style="margin-left: 16px; padding: 6px 12px; background: #7f1d1d; color: #fca5a5; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">로그아웃</button>
+                    <button onclick="logout()" style="margin-left:16px;padding:6px 12px;background:#7f1d1d;color:#fca5a5;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">로그아웃</button>
                 </div>
                 <h2 class="card-title">날짜별 예약 현황 (관리자)</h2>
+                <div style="margin-bottom:12px; display:flex; justify-content:space-between; gap:8px; align-items:center;">
+                    <div class="control-row">
+                        <button id="exportBookingsBtn" class="btn-primary">예약 내역 JSON으로 내보내기</button>
+                        <button id="exportLogsBtn" class="btn-primary">로그 내보내기</button>
+                    </div>
+                    <div style="font-size:13px;color:#9ca3af;">관리자 비밀번호: <strong>admin2025</strong></div>
+                </div>
                 <div id="adminBookingsList"></div>
             </div>
 
-            <!-- 통계 -->
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div>
-                        <div class="stat-label">전체 예약</div>
-                        <div class="stat-value" id="statTotal" style="color: #9ca3af;">0</div>
-                    </div>
-                    <div class="stat-icon" style="background: #374151;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                    </div>
-                </div>
+                <div class="stat-card"><div><div class="stat-label">전체 예약</div><div class="stat-value" id="statTotal" style="color:#9ca3af;">0</div></div><div class="stat-icon" style="background:#374151;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div></div>
+                <div class="stat-card"><div><div class="stat-label">예약된 날짜</div><div class="stat-value" id="statDates" style="color:#9ca3af;">0</div></div><div class="stat-icon" style="background:#374151;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></div></div>
+                <div class="stat-card"><div><div class="stat-label">예약률</div><div class="stat-value" id="statRate" style="color:#9ca3af;">0%</div></div><div class="stat-icon" style="background:#374151;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg></div></div>
+            </div>
 
-                <div class="stat-card">
-                    <div>
-                        <div class="stat-label">예약된 날짜</div>
-                        <div class="stat-value" id="statDates" style="color: #9ca3af;">0</div>
-                    </div>
-                    <div class="stat-icon" style="background: #374151;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div>
-                        <div class="stat-label">예약률</div>
-                        <div class="stat-value" id="statRate" style="color: #9ca3af;">0%</div>
-                    </div>
-                    <div class="stat-icon" style="background: #374151;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </div>
-                </div>
+            <div style="margin-top:16px;" class="card">
+                <h3 style="font-size:18px;color:#f3f4f6;margin-bottom:12px;">관리자 로그</h3>
+                <div id="logContainer" class="log-list"></div>
             </div>
         </div>
 
-            <!-- 통계 -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div>
-                        <div class="stat-label">전체 예약</div>
-                        <div class="stat-value" id="statTotal" style="color: #9ca3af;">0</div>
-                    </div>
-                    <div class="stat-icon" style="background: #374151;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div>
-                        <div class="stat-label">예약된 날짜</div>
-                        <div class="stat-value" id="statDates" style="color: #9ca3af;">0</div>
-                    </div>
-                    <div class="stat-icon" style="background: #374151;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="stat-card">
-                    <div>
-                        <div class="stat-label">예약률</div>
-                        <div class="stat-value" id="statRate" style="color: #9ca3af;">0%</div>
-                    </div>
-                    <div class="stat-icon" style="background: #374151;">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 예약 완료 모달 -->
-        <div id="confirmModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                </div>
-                <h3 class="modal-title">예약이 완료되었습니다!</h3>
-                <p id="confirmText" class="modal-text"></p>
-            </div>
-        </div>
+        <div id="confirmModal" class="modal"><div class="modal-content"><div style="margin-bottom:12px;">✅</div><h3 class="modal-title">예약이 완료되었습니다!</h3><p id="confirmText" class="modal-text" style="color:#9ca3af;margin-top:8px;"></p></div></div>
     </div>
 
     <script>
-        // 상태 관리
-        let bookings = {};
+        // --- 상태 ---
+        let bookings = {}; // key: "date-time" -> { userName, password, notes, date, time, id }
+        let logs = []; // { ts, action, key, detail }
         let selectedDate = null;
         let selectedTime = null;
         let viewMode = 'booking';
         let isAdminLoggedIn = false;
-        const ADMIN_PASSWORD = 'feel1380'; // 관리자 비밀번호
+        const ADMIN_PASSWORD = 'admin2025';
+        const timeSlots = ['10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
 
-        const timeSlots = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+        const STORAGE_KEY_BOOKINGS = 'bf_bookings_v1';
+        const STORAGE_KEY_LOGS = 'bf_logs_v1';
 
-        // 요일 계산
-        function getDayOfWeek(date) {
-            const days = ['일', '월', '화', '수', '목', '금', '토'];
-            const d = new Date(2025, 11, date);
-            return days[d.getDay()];
+        // --- 저장/불러오기 (localStorage) ---
+        function saveBookingsToStorage(){
+            try{
+                localStorage.setItem(STORAGE_KEY_BOOKINGS, JSON.stringify(bookings));
+            }catch(e){ console.error('저장 실패', e); }
+        }
+        function loadBookingsFromStorage(){
+            try{
+                const raw = localStorage.getItem(STORAGE_KEY_BOOKINGS);
+                bookings = raw ? JSON.parse(raw) : {};
+            }catch(e){ console.error('로딩 실패', e); bookings = {}; }
+        }
+        function saveLogsToStorage(){
+            try{ localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs)); }catch(e){ console.error(e); }
+        }
+        function loadLogsFromStorage(){
+            try{ const raw = localStorage.getItem(STORAGE_KEY_LOGS); logs = raw ? JSON.parse(raw) : []; }catch(e){ logs = []; }
         }
 
-        function getDayOfWeekNum(date) {
-            const d = new Date(2025, 11, date);
-            return d.getDay();
+        function appendLog(action, key, detail){
+            const entry = { ts: new Date().toISOString(), action, key, detail };
+            logs.unshift(entry); // 최신이 위
+            saveLogsToStorage();
+            renderLogs();
         }
 
-        // 달력 생성
-        function generateCalendar() {
+        // --- 유틸 ---
+        function getDayOfWeek(date){ const days=['일','월','화','수','목','금','토']; const d=new Date(2025,11,date); return days[d.getDay()]; }
+        function getDayOfWeekNum(date){ const d=new Date(2025,11,date); return d.getDay(); }
+
+        // --- 캘린더 생성 ---
+        function generateCalendar(){
             const firstDay = getDayOfWeekNum(1);
             const totalDays = 20;
-            const calendarGrid = document.getElementById('calendarGrid');
-            calendarGrid.innerHTML = '';
-
-            let currentWeek = [];
-            
-            // 첫 주 빈 칸
-            for (let i = 0; i < firstDay; i++) {
-                currentWeek.push(null);
-            }
-
-            // 날짜 채우기
-            for (let day = 1; day <= totalDays; day++) {
+            const calendarGrid = document.getElementById('calendarGrid'); calendarGrid.innerHTML='';
+            let currentWeek=[];
+            for(let i=0;i<firstDay;i++) currentWeek.push(null);
+            for(let day=1; day<=totalDays; day++){
                 currentWeek.push(day);
-                
-                if (currentWeek.length === 7 || day === totalDays) {
-                    // 마지막 주 빈 칸
-                    while (currentWeek.length < 7) {
-                        currentWeek.push(null);
-                    }
-                    
-                    const weekDiv = document.createElement('div');
-                    weekDiv.className = 'calendar-week';
-                    
-                    currentWeek.forEach((date, idx) => {
+                if(currentWeek.length===7 || day===totalDays){
+                    while(currentWeek.length<7) currentWeek.push(null);
+                    const weekDiv = document.createElement('div'); weekDiv.className='calendar-week';
+                    currentWeek.forEach((date, idx)=>{
                         const dayDiv = document.createElement('div');
-                        
-                        if (date === null) {
-                            dayDiv.className = 'calendar-day empty';
-                        } else {
-                            dayDiv.className = 'calendar-day';
-                            if (date === selectedDate) {
-                                dayDiv.classList.add('selected');
-                            }
-                            
-                            const numberDiv = document.createElement('div');
-                            numberDiv.className = 'calendar-day-number';
-                            if (idx === 0) numberDiv.classList.add('sunday');
-                            if (idx === 6) numberDiv.classList.add('saturday');
-                            numberDiv.textContent = date;
-                            dayDiv.appendChild(numberDiv);
-                            
-                            // 예약 개수 표시
+                        if(date===null){ dayDiv.className='calendar-day empty'; }
+                        else{
+                            dayDiv.className='calendar-day'; if(date===selectedDate) dayDiv.classList.add('selected');
+                            const numberDiv = document.createElement('div'); numberDiv.className='calendar-day-number'; if(idx===0) numberDiv.classList.add('sunday'); if(idx===6) numberDiv.classList.add('saturday'); numberDiv.textContent = date; dayDiv.appendChild(numberDiv);
+
                             const bookingCount = getBookingCount(date);
-                            if (bookingCount > 0) {
-                                const dotsDiv = document.createElement('div');
-                                dotsDiv.className = 'booking-dots';
-                                for (let i = 0; i < Math.min(bookingCount, 3); i++) {
-                                    const dot = document.createElement('div');
-                                    dot.className = 'booking-dot';
-                                    dotsDiv.appendChild(dot);
-                                }
-                                dayDiv.appendChild(dotsDiv);
-                            }
-                            
-                            dayDiv.onclick = () => selectDate(date);
+                            if(bookingCount>0){ const dotsDiv = document.createElement('div'); dotsDiv.className='booking-dots'; for(let i=0;i<Math.min(bookingCount,3); i++){ const dot=document.createElement('div'); dot.className='booking-dot'; dotsDiv.appendChild(dot);} dayDiv.appendChild(dotsDiv); }
+
+                            dayDiv.onclick = ()=> selectDate(date);
                         }
-                        
                         weekDiv.appendChild(dayDiv);
                     });
-                    
-                    calendarGrid.appendChild(weekDiv);
-                    currentWeek = [];
+                    calendarGrid.appendChild(weekDiv); currentWeek=[];
                 }
             }
         }
 
-        // 예약 개수 확인
-        function getBookingCount(date) {
-            return timeSlots.filter(time => bookings[`${date}-${time}`]).length;
+        function getBookingCount(date){
+            return timeSlots.filter(time=> bookings[`${date}-${time}`]).length;
         }
 
-        // 날짜 선택
-        function selectDate(date) {
-            selectedDate = date;
-            selectedTime = null;
-            updateUI();
-            generateTimeSlots();
-        }
-
-        // 시간 슬롯 생성
-        function generateTimeSlots() {
-            const container = document.getElementById('timeSlots');
-            const section = document.getElementById('timeSelection');
-            const title = document.getElementById('timeSelectionTitle');
-            
-            if (!selectedDate) {
-                section.classList.add('hidden');
-                return;
-            }
-            
-            section.classList.remove('hidden');
-            title.textContent = `시간 선택 - 12월 ${selectedDate}일 (${getDayOfWeek(selectedDate)})`;
-            container.innerHTML = '';
-            
-            timeSlots.forEach(time => {
+        // --- 시간 슬롯 ---
+        function generateTimeSlots(){
+            const container = document.getElementById('timeSlots'); const section = document.getElementById('timeSelection'); const title = document.getElementById('timeSelectionTitle');
+            if(!selectedDate){ section.classList.add('hidden'); return; }
+            section.classList.remove('hidden'); title.textContent = `시간 선택 - 12월 ${selectedDate}일 (${getDayOfWeek(selectedDate)})`; container.innerHTML='';
+            timeSlots.forEach(time=>{
                 const key = `${selectedDate}-${time}`;
                 const isBooked = bookings[key];
-                
-                const slotDiv = document.createElement('div');
-                slotDiv.className = 'time-slot';
-                
-                if (isBooked) {
-                    slotDiv.classList.add('booked');
-                } else if (time === selectedTime) {
-                    slotDiv.classList.add('selected');
-                }
-                
-                const timeDiv = document.createElement('div');
-                timeDiv.className = 'time-slot-time';
-                timeDiv.textContent = time;
-                slotDiv.appendChild(timeDiv);
-                
-                if (isBooked) {
-                    const statusDiv = document.createElement('div');
-                    statusDiv.className = 'time-slot-status';
-                    statusDiv.textContent = '예약됨';
-                    slotDiv.appendChild(statusDiv);
-                } else {
-                    slotDiv.onclick = () => selectTime(time);
-                }
-                
+                const slotDiv = document.createElement('div'); slotDiv.className='time-slot';
+                if(isBooked) slotDiv.classList.add('booked'); else if(time===selectedTime) slotDiv.classList.add('selected');
+                const timeDiv = document.createElement('div'); timeDiv.className='time-slot-time'; timeDiv.textContent=time; slotDiv.appendChild(timeDiv);
+                if(isBooked){ const statusDiv=document.createElement('div'); statusDiv.className='time-slot-status'; statusDiv.textContent='예약됨'; slotDiv.appendChild(statusDiv); }
+                else slotDiv.onclick = ()=> selectTime(time);
                 container.appendChild(slotDiv);
             });
         }
 
-        // 시간 선택
-        function selectTime(time) {
-            selectedTime = time;
-            updateUI();
-            generateTimeSlots();
-        }
+        // --- 선택/입력 ---
+        function selectDate(date){ selectedDate = date; selectedTime = null; updateUI(); generateTimeSlots(); }
+        function selectTime(time){ selectedTime = time; updateUI(); generateTimeSlots(); }
 
-        // UI 업데이트
-        function updateUI() {
-            // 달력 업데이트
-            generateCalendar();
-            
-            // 선택된 정보 표시
-            const dateDisplay = document.getElementById('selectedDateDisplay');
-            const timeDisplay = document.getElementById('selectedTimeDisplay');
-            const bookingBtn = document.getElementById('bookingBtn');
-            
-            if (selectedDate) {
-                dateDisplay.textContent = `12월 ${selectedDate}일 (${getDayOfWeek(selectedDate)})`;
-            } else {
-                dateDisplay.textContent = '날짜를 선택하세요';
-            }
-            
-            if (selectedTime) {
-                timeDisplay.textContent = selectedTime;
-            } else {
-                timeDisplay.textContent = '시간을 선택하세요';
-            }
-            
-            // 예약 버튼 활성화
-            const userName = document.getElementById('userName').value.trim();
-            const userPassword = document.getElementById('userPassword').value.trim();
-            bookingBtn.disabled = !(selectedDate && selectedTime && userName && userPassword.length === 4);
-            
-            // 총 예약 수 업데이트
+        function updateUI(){ generateCalendar();
+            const dateDisplay = document.getElementById('selectedDateDisplay'); const timeDisplay = document.getElementById('selectedTimeDisplay'); const bookingBtn = document.getElementById('bookingBtn');
+            if(selectedDate) dateDisplay.textContent = `12월 ${selectedDate}일 (${getDayOfWeek(selectedDate)})`; else dateDisplay.textContent='날짜를 선택하세요';
+            if(selectedTime) timeDisplay.textContent = selectedTime; else timeDisplay.textContent='시간을 선택하세요';
+            const userName = document.getElementById('userName').value.trim(); const userPassword = document.getElementById('userPassword').value.trim();
+            bookingBtn.disabled = !(selectedDate && selectedTime && userName && userPassword.length===4);
             document.getElementById('totalBookings').textContent = `총 ${Object.keys(bookings).length}개 예약`;
         }
 
-        // 예약하기
-        function handleBooking() {
-            const userName = document.getElementById('userName').value.trim();
-            const userPassword = document.getElementById('userPassword').value.trim();
-            const userNotes = document.getElementById('userNotes').value.trim();
-            
-            if (!selectedDate || !selectedTime || !userName || userPassword.length !== 4) {
-                alert('모든 정보를 올바르게 입력해주세요.');
-                return;
-            }
-            
-            if (!/^\d{4}$/.test(userPassword)) {
-                alert('비밀번호는 4자리 숫자여야 합니다.');
-                return;
-            }
-            
+        // --- 예약 생성 ---
+        function handleBooking(){
+            const userName = document.getElementById('userName').value.trim(); const userPassword = document.getElementById('userPassword').value.trim(); const userNotes = document.getElementById('userNotes').value.trim();
+            if(!selectedDate || !selectedTime || !userName || userPassword.length!==4){ alert('모든 정보를 올바르게 입력해주세요.'); return; }
+            if(!/^\d{4}$/.test(userPassword)){ alert('비밀번호는 4자리 숫자여야 합니다.'); return; }
             const key = `${selectedDate}-${selectedTime}`;
-            if (bookings[key]) {
-                alert('이미 예약된 시간입니다.');
-                return;
-            }
-            
-            bookings[key] = { 
-                userName, 
-                password: userPassword, 
-                notes: userNotes,
-                date: selectedDate, 
-                time: selectedTime 
-            };
-            
-            // 확인 모달 표시
-            const modal = document.getElementById('confirmModal');
-            const confirmText = document.getElementById('confirmText');
-            confirmText.textContent = `${userName} - 12월 ${selectedDate}일 ${selectedTime}`;
-            modal.classList.add('show');
-            
-            setTimeout(() => {
-                modal.classList.remove('show');
-                selectedDate = null;
-                selectedTime = null;
-                document.getElementById('userName').value = '';
-                document.getElementById('userPassword').value = '';
-                document.getElementById('userNotes').value = '';
-                updateUI();
-                generateTimeSlots();
-            }, 2000);
+            if(bookings[key]){ alert('이미 예약된 시간입니다.'); return; }
+            // 고유 ID 생성 (서버 없는 환경에서 충돌 최소화)
+            const id = 'bk_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6);
+            bookings[key] = { userName, password: userPassword, notes: userNotes, date: selectedDate, time: selectedTime, id };
+            saveBookingsToStorage(); appendLog('CREATE', key, { userName, date:selectedDate, time:selectedTime, id });
+            // 확인 모달
+            const modal = document.getElementById('confirmModal'); const confirmText = document.getElementById('confirmText'); confirmText.textContent = `${userName} - 12월 ${selectedDate}일 ${selectedTime}`; modal.classList.add('show');
+            setTimeout(()=>{ modal.classList.remove('show'); selectedDate=null; selectedTime=null; document.getElementById('userName').value=''; document.getElementById('userPassword').value=''; document.getElementById('userNotes').value=''; updateUI(); generateTimeSlots(); renderAllViews(); }, 1500);
         }
 
-        // 예약 취소 (일반 사용자 - 비밀번호 필요)
-        function cancelBooking(key) {
-            const booking = bookings[key];
-            if (!booking) return;
-            
-            const inputPassword = prompt('예약 시 입력한 비밀번호 4자리를 입력하세요:');
-            
-            if (!inputPassword) {
-                return; // 취소 버튼 클릭
-            }
-            
-            if (inputPassword !== booking.password) {
-                alert('비밀번호가 일치하지 않습니다.');
-                return;
-            }
-            
-            if (confirm('이 예약을 취소하시겠습니까?')) {
-                delete bookings[key];
-                updateUserView();
-                updateUI();
-            }
-        }
+        // --- 취소 (사용자) ---
+        function cancelBooking(key){ const booking = bookings[key]; if(!booking) return; const inputPassword = prompt('예약 시 입력한 비밀번호 4자리를 입력하세요:'); if(!inputPassword) return; if(inputPassword !== booking.password){ alert('비밀번호가 일치하지 않습니다.'); return; } if(confirm('이 예약을 취소하시겠습니까?')){ delete bookings[key]; saveBookingsToStorage(); appendLog('DELETE_USER', key, { by: 'user', id: booking.id, userName: booking.userName }); renderAllViews(); } }
 
-        // 관리자 예약 삭제 (비밀번호 불필요)
-        function adminCancelBooking(key) {
-            if (confirm('이 예약을 삭제하시겠습니까?')) {
-                delete bookings[key];
-                updateAdminView();
-                updateUI();
-            }
-        }
+        // --- 관리자 삭제 ---
+        function adminCancelBooking(key){ const booking = bookings[key]; if(!booking) return; if(confirm('관리자 권한으로 이 예약을 삭제하시겠습니까?')){ delete bookings[key]; saveBookingsToStorage(); appendLog('DELETE_ADMIN', key, { by: 'admin', id: booking.id, userName: booking.userName }); renderAllViews(); } }
 
-        // 일반 사용자 뷰 업데이트 (조회 + 본인 예약 취소)
-        function updateUserView() {
-            const container = document.getElementById('userBookingsList');
-            container.innerHTML = '';
-            
-            // 날짜별로 그룹화
-            const bookingsByDate = {};
-            for (const [key, booking] of Object.entries(bookings)) {
-                const date = booking.date;
-                if (!bookingsByDate[date]) {
-                    bookingsByDate[date] = [];
-                }
-                bookingsByDate[date].push({ key, ...booking });
-            }
-            
-            if (Object.keys(bookingsByDate).length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        <p class="empty-state-text">아직 예약이 없습니다.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            // 날짜별로 정렬하여 표시
-            const sortedDates = Object.keys(bookingsByDate).sort((a, b) => a - b);
-            
-            sortedDates.forEach(date => {
-                const section = document.createElement('div');
-                section.className = 'date-section';
-                
-                const header = document.createElement('div');
-                header.className = 'date-section-header';
-                header.innerHTML = `
-                    <div class="date-section-title">
-                        12월 ${date}일 (${getDayOfWeek(date)}) - ${bookingsByDate[date].length}건
-                    </div>
-                `;
-                section.appendChild(header);
-                
-                const body = document.createElement('div');
-                body.className = 'date-section-body';
-                
-                bookingsByDate[date].forEach(booking => {
-                    const item = document.createElement('div');
-                    item.className = 'booking-item';
-                    
-                    const hour = booking.time.split(':')[0];
-                    
-                    const notesHtml = booking.notes 
-                        ? `<div style="margin-top: 8px; padding: 8px; background: #111827; border-radius: 4px; border-left: 3px solid #4b5563;">
-                            <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">특이사항</div>
-                            <div style="font-size: 13px; color: #d1d5db;">${booking.notes}</div>
-                           </div>`
-                        : '';
-                    
+        // --- 뷰 렌더링 ---
+        function updateUserView(){ const container = document.getElementById('userBookingsList'); container.innerHTML=''; const bookingsByDate={}; for(const [key, booking] of Object.entries(bookings)){ const date = booking.date; if(!bookingsByDate[date]) bookingsByDate[date]=[]; bookingsByDate[date].push({ key, ...booking }); }
+            if(Object.keys(bookingsByDate).length===0){ container.innerHTML = `<div class="empty-state" style="padding:32px;color:#6b7280;text-align:center;"><p class="empty-state-text">아직 예약이 없습니다.</p></div>`; return; }
+            const sortedDates = Object.keys(bookingsByDate).sort((a,b)=>a-b);
+            sortedDates.forEach(date=>{
+                const section = document.createElement('div'); section.className='date-section';
+                const header = document.createElement('div'); header.className='date-section-header'; header.innerHTML = `<div class="date-section-title">12월 ${date}일 (${getDayOfWeek(date)}) - ${bookingsByDate[date].length}건</div>`; section.appendChild(header);
+                const body = document.createElement('div'); body.className='date-section-body';
+                bookingsByDate[date].forEach(booking=>{
+                    const item = document.createElement('div'); item.className='booking-item'; const hour = booking.time.split(':')[0];
+                    const notesHtml = booking.notes ? `<div style="margin-top:8px;padding:8px;background:#111827;border-radius:4px;border-left:3px solid #4b5563;"><div style="font-size:12px;color:#9ca3af;margin-bottom:4px;">특이사항</div><div style="font-size:13px;color:#d1d5db;">${booking.notes}</div></div>` : '';
                     item.innerHTML = `
-                        <div class="booking-info" style="flex-direction: column; align-items: flex-start; width: 100%;">
-                            <div style="display: flex; align-items: center; gap: 16px; width: 100%;">
-                                <div class="booking-time-badge">
-                                    <div class="booking-time-hour">${hour}</div>
-                                    <div class="booking-time-label">시</div>
-                                </div>
-                                <div class="booking-details" style="flex: 1;">
-                                    <div class="booking-name">${booking.userName}</div>
-                                    <div class="booking-time-text">${booking.time}</div>
-                                </div>
+                        <div class="booking-info" style="flex-direction:column;align-items:flex-start;width:100%;">
+                            <div style="display:flex;align-items:center;gap:16px;width:100%;">
+                                <div class="booking-time-badge"><div class="booking-time-hour">${hour}</div><div class="booking-time-label">시</div></div>
+                                <div class="booking-details" style="flex:1;"><div class="booking-name">${booking.userName}</div><div class="booking-time-text">${booking.time}</div></div>
                                 <button class="btn-cancel" onclick="cancelBooking('${booking.key}')">취소</button>
                             </div>
                             ${notesHtml}
-                        </div>
-                    `;
-                    
+                        </div>`;
                     body.appendChild(item);
                 });
-                
-                section.appendChild(body);
-                container.appendChild(section);
+                section.appendChild(body); container.appendChild(section);
             });
-            
             // 통계 업데이트
-            const totalBookings = Object.keys(bookings).length;
-            const uniqueDates = new Set(Object.values(bookings).map(b => b.date)).size;
-            const rate = Math.round((totalBookings / (20 * timeSlots.length)) * 100);
-            
-            document.getElementById('userStatTotal').textContent = totalBookings;
-            document.getElementById('userStatDates').textContent = uniqueDates;
-            document.getElementById('userStatRate').textContent = rate + '%';
+            const totalBookings = Object.keys(bookings).length; const uniqueDates = new Set(Object.values(bookings).map(b=>b.date)).size; const rate = Math.round((totalBookings / (20 * timeSlots.length)) * 100);
+            document.getElementById('userStatTotal').textContent = totalBookings; document.getElementById('userStatDates').textContent = uniqueDates; document.getElementById('userStatRate').textContent = rate + '%';
         }
 
-        // 관리자 뷰 업데이트
-        function updateAdminView() {
-            const container = document.getElementById('adminBookingsList');
-            container.innerHTML = '';
-            
-            // 날짜별로 그룹화
-            const bookingsByDate = {};
-            for (const [key, booking] of Object.entries(bookings)) {
-                const date = booking.date;
-                if (!bookingsByDate[date]) {
-                    bookingsByDate[date] = [];
-                }
-                bookingsByDate[date].push({ key, ...booking });
-            }
-            
-            if (Object.keys(bookingsByDate).length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        <p class="empty-state-text">아직 예약이 없습니다.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            // 날짜별로 정렬하여 표시
-            const sortedDates = Object.keys(bookingsByDate).sort((a, b) => a - b);
-            
-            sortedDates.forEach(date => {
-                const section = document.createElement('div');
-                section.className = 'date-section';
-                
-                const header = document.createElement('div');
-                header.className = 'date-section-header';
-                header.innerHTML = `
-                    <div class="date-section-title">
-                        12월 ${date}일 (${getDayOfWeek(date)}) - ${bookingsByDate[date].length}건
-                    </div>
-                `;
-                section.appendChild(header);
-                
-                const body = document.createElement('div');
-                body.className = 'date-section-body';
-                
-                bookingsByDate[date].forEach(booking => {
-                    const item = document.createElement('div');
-                    item.className = 'booking-item';
-                    
-                    const hour = booking.time.split(':')[0];
-                    
-                    const notesHtml = booking.notes 
-                        ? `<div style="margin-top: 8px; padding: 8px; background: #111827; border-radius: 4px; border-left: 3px solid #4b5563;">
-                            <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">특이사항</div>
-                            <div style="font-size: 13px; color: #d1d5db;">${booking.notes}</div>
-                           </div>`
-                        : '';
-                    
+        function updateAdminView(){ const container = document.getElementById('adminBookingsList'); container.innerHTML=''; const bookingsByDate={}; for(const [key, booking] of Object.entries(bookings)){ const date=booking.date; if(!bookingsByDate[date]) bookingsByDate[date]=[]; bookingsByDate[date].push({ key, ...booking }); }
+            if(Object.keys(bookingsByDate).length===0){ container.innerHTML = `<div class="empty-state" style="padding:32px;color:#6b7280;text-align:center;"><p class="empty-state-text">아직 예약이 없습니다.</p></div>`; return; }
+            const sortedDates = Object.keys(bookingsByDate).sort((a,b)=>a-b);
+            sortedDates.forEach(date=>{
+                const section = document.createElement('div'); section.className='date-section';
+                const header = document.createElement('div'); header.className='date-section-header'; header.innerHTML = `<div class="date-section-title">12월 ${date}일 (${getDayOfWeek(date)}) - ${bookingsByDate[date].length}건</div>`; section.appendChild(header);
+                const body = document.createElement('div'); body.className='date-section-body';
+                bookingsByDate[date].forEach(booking=>{
+                    const item = document.createElement('div'); item.className='booking-item'; const hour = booking.time.split(':')[0];
+                    const notesHtml = booking.notes ? `<div style="margin-top:8px;padding:8px;background:#111827;border-radius:4px;border-left:3px solid #4b5563;"><div style="font-size:12px;color:#9ca3af;margin-bottom:4px;">특이사항</div><div style="font-size:13px;color:#d1d5db;">${booking.notes}</div></div>` : '';
                     item.innerHTML = `
-                        <div class="booking-info" style="flex-direction: column; align-items: flex-start; width: 100%;">
-                            <div style="display: flex; align-items: center; gap: 16px; width: 100%;">
-                                <div class="booking-time-badge">
-                                    <div class="booking-time-hour">${hour}</div>
-                                    <div class="booking-time-label">시</div>
-                                </div>
-                                <div class="booking-details" style="flex: 1;">
-                                    <div class="booking-name">${booking.userName}</div>
-                                    <div class="booking-time-text">${booking.time}</div>
-                                </div>
+                        <div class="booking-info" style="flex-direction:column;align-items:flex-start;width:100%;">
+                            <div style="display:flex;align-items:center;gap:16px;width:100%;">
+                                <div class="booking-time-badge"><div class="booking-time-hour">${hour}</div><div class="booking-time-label">시</div></div>
+                                <div class="booking-details" style="flex:1;"><div class="booking-name">${booking.userName}</div><div class="booking-time-text">${booking.time}</div></div>
                                 <button class="btn-cancel" onclick="adminCancelBooking('${booking.key}')">삭제</button>
                             </div>
                             ${notesHtml}
-                        </div>
-                    `;
-                    
+                        </div>`;
                     body.appendChild(item);
                 });
-                
-                section.appendChild(body);
-                container.appendChild(section);
+                section.appendChild(body); container.appendChild(section);
             });
-            
-            // 통계 업데이트
-            const totalBookings = Object.keys(bookings).length;
-            const uniqueDates = new Set(Object.values(bookings).map(b => b.date)).size;
-            const rate = Math.round((totalBookings / (20 * timeSlots.length)) * 100);
-            
-            document.getElementById('statTotal').textContent = totalBookings;
-            document.getElementById('statDates').textContent = uniqueDates;
-            document.getElementById('statRate').textContent = rate + '%';
+            const totalBookings = Object.keys(bookings).length; const uniqueDates = new Set(Object.values(bookings).map(b=>b.date)).size; const rate = Math.round((totalBookings / (20 * timeSlots.length)) * 100);
+            document.getElementById('statTotal').textContent = totalBookings; document.getElementById('statDates').textContent = uniqueDates; document.getElementById('statRate').textContent = rate + '%';
         }
 
-        // 모드 전환
-        function switchMode(mode) {
-            // 관리자 탭 접근 시 비밀번호 확인
-            if (mode === 'admin') {
-                if (!isAdminLoggedIn) {
-                    const password = prompt('관리자 비밀번호를 입력하세요:');
-                    
-                    if (password !== ADMIN_PASSWORD) {
-                        alert('비밀번호가 일치하지 않습니다.');
-                        return; // 모드 전환 취소
-                    }
-                    
-                    isAdminLoggedIn = true;
-                    alert('관리자로 로그인되었습니다.');
-                }
-            }
-            
+        function renderLogs(){ const container = document.getElementById('logContainer'); if(!container) return; container.innerHTML=''; if(logs.length===0){ container.innerHTML = '<div style="padding:12px;color:#6b7280;">로그가 없습니다.</div>'; return; }
+            logs.forEach(entry=>{ const div = document.createElement('div'); div.className='log-item'; div.textContent = `${entry.ts} | ${entry.action} | ${entry.key} | ${JSON.stringify(entry.detail)}`; container.appendChild(div); }); }
+
+        function renderAllViews(){ generateCalendar(); generateTimeSlots(); updateUserView(); updateAdminView(); renderLogs(); document.getElementById('totalBookings').textContent = `총 ${Object.keys(bookings).length}개 예약`; }
+
+        // --- 모드 전환 ---
+        function switchMode(mode){
+            if(mode==='admin' && !isAdminLoggedIn){ const password = prompt('관리자 비밀번호를 입력하세요:'); if(password !== ADMIN_PASSWORD){ alert('비밀번호가 일치하지 않습니다.'); return; } isAdminLoggedIn = true; alert('관리자로 로그인되었습니다.'); }
             viewMode = mode;
-            
             const bookingModeBtn = document.getElementById('bookingModeBtn');
             const userModeBtn = document.getElementById('userModeBtn');
             const adminModeBtn = document.getElementById('adminModeBtn');
             const bookingMode = document.getElementById('bookingMode');
             const userMode = document.getElementById('userMode');
             const adminMode = document.getElementById('adminMode');
-            
-            // 모든 버튼 비활성화
-            bookingModeBtn.classList.remove('active');
-            userModeBtn.classList.remove('active');
-            adminModeBtn.classList.remove('active');
-            
-            // 모든 뷰 숨기기
-            bookingMode.classList.add('hidden');
-            userMode.classList.add('hidden');
-            adminMode.classList.add('hidden');
-            
-            // 선택된 모드만 활성화
-            if (mode === 'booking') {
-                bookingModeBtn.classList.add('active');
-                bookingMode.classList.remove('hidden');
-            } else if (mode === 'user') {
-                userModeBtn.classList.add('active');
-                userMode.classList.remove('hidden');
-                updateUserView();
-            } else if (mode === 'admin') {
-                adminModeBtn.classList.add('active');
-                adminMode.classList.remove('hidden');
-                updateAdminView();
-            }
+
+            // 버튼 active 처리 및 섹션 표시
+            bookingModeBtn.classList.remove('active'); userModeBtn.classList.remove('active'); adminModeBtn.classList.remove('active');
+            bookingMode.classList.add('hidden'); userMode.classList.add('hidden'); adminMode.classList.add('hidden');
+            if(mode==='booking'){ bookingModeBtn.classList.add('active'); bookingMode.classList.remove('hidden'); }
+            else if(mode==='user'){ userModeBtn.classList.add('active'); userMode.classList.remove('hidden'); updateUserView(); }
+            else if(mode==='admin'){ adminModeBtn.classList.add('active'); adminMode.classList.remove('hidden'); updateAdminView(); renderLogs(); }
         }
 
-        // 로그아웃
-        function logout() {
-            if (confirm('관리자 모드에서 로그아웃하시겠습니까?')) {
-                isAdminLoggedIn = false;
-                switchMode('booking');
-                alert('로그아웃되었습니다.');
-            }
+        function logout(){ if(confirm('관리자 모드에서 로그아웃하시겠습니까?')){ isAdminLoggedIn = false; switchMode('booking'); alert('로그아웃되었습니다.'); } }
+
+        // --- 내보내기 ---
+        function downloadJSON(filename, data){ const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url); }
+
+        // --- Hash 기반 라우팅 및 이벤트 연결 ---
+        function applyHashRouting(){
+            const hash = location.hash.replace('#','') || 'booking';
+            if(hash === 'booking') switchMode('booking');
+            else if(hash === 'user') switchMode('user');
+            else if(hash === 'admin') switchMode('admin');
+            else switchMode('booking');
         }
 
-        // 이벤트 리스너
-        document.getElementById('bookingModeBtn').onclick = () => switchMode('booking');
-        document.getElementById('userModeBtn').onclick = () => switchMode('user');
-        document.getElementById('adminModeBtn').onclick = () => switchMode('admin');
-        document.getElementById('bookingBtn').onclick = handleBooking;
-        document.getElementById('userName').oninput = updateUI;
-        document.getElementById('userPassword').oninput = updateUI;
+        window.addEventListener('hashchange', applyHashRouting);
 
-        // 초기화
-        generateCalendar();
-        updateUI();
+        // 버튼 클릭 시 해시 변경
+        document.getElementById('bookingModeBtn').addEventListener('click', ()=> { location.hash = 'booking'; });
+        document.getElementById('userModeBtn').addEventListener('click', ()=> { location.hash = 'user'; });
+        document.getElementById('adminModeBtn').addEventListener('click', ()=> { location.hash = 'admin'; });
+
+        // 기타 이벤트
+        document.getElementById('bookingBtn').addEventListener('click', handleBooking);
+        document.getElementById('exportBookingsBtn').addEventListener('click', ()=>{ if(!isAdminLoggedIn){ alert('관리자 로그인이 필요합니다.'); return; } downloadJSON('bookings.json', bookings); });
+        document.getElementById('exportLogsBtn').addEventListener('click', ()=>{ if(!isAdminLoggedIn){ alert('관리자 로그인이 필요합니다.'); return; } downloadJSON('logs.json', logs); });
+        document.getElementById('userName').addEventListener('input', updateUI);
+        document.getElementById('userPassword').addEventListener('input', updateUI);
+
+        // --- 초기화 ---
+        loadBookingsFromStorage(); loadLogsFromStorage();
+        // 초기 렌더 및 hash 적용
+        renderAllViews();
+        applyHashRouting();
     </script>
 </body>
 </html>
